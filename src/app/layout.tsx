@@ -6,8 +6,8 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "Classroom Scheduler",
-  description: "A real-time classroom scheduling system",
+  title: "Campus Connect",
+  description: "A shared campus space for students and teachers",
 };
 
 export default function RootLayout({

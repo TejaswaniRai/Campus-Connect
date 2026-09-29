@@ -5,10 +5,9 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { getCurrentTimeSlot, TIME_SLOTS, type TimeSlot, isStaffRoom } from '@/lib/schedule-store'
 import { FloorView } from '@/components/ui/floor-view'
-import { RoomBookingsModal } from '@/components/ui/room-bookings-modal'
 import { ScheduleCalendar } from '@/components/ui/schedule-calendar'
+import { getRoomCapacity, isMaintenanceSchedule } from '@/lib/room-config'
 import type { Floor, RoomStatus } from '@/types/floor'
 
 interface BookingDetails {
@@ -34,37 +33,29 @@ async function fetchSchedule(date: string): Promise<DailySchedule> {
 }
 
 // Function to transform API data into floor data
-function transformScheduleData(schedule: DailySchedule, currentSlot: string): Floor[] {
+function transformScheduleData(schedule: DailySchedule): Floor[] {
   const floors = Array.from({ length: 5 }, (_, i) => i + 1).map(floorNumber => {
     const rooms = Array.from({ length: 6 }, (_, j) => {
       const roomNumber = `CSE-${floorNumber}${(j + 1).toString().padStart(2, '0')}`
       const roomSchedule = schedule[roomNumber] || {}
 
-      const isStaff = isStaffRoom(roomNumber)
-      // Student behavior: occupied/free strictly for the selected time slot (or staff room)
-      const bookingForSelected = (roomSchedule as Record<string, BookingDetails | null>)[currentSlot as string] || null
-      const isOccupiedAtSelected = isStaff || Boolean(bookingForSelected)
+      const hasBookings = Object.values(roomSchedule).some(Boolean)
+        const isMaintenance = isMaintenanceSchedule(roomSchedule)
       
       return {
         roomNumber,
-        status: (isOccupiedAtSelected ? 'occupied' : 'free') as RoomStatus,
-        currentBooking: isStaff
-          ? {
-              batchName: '',
-              timeSlot: '',
-              lectureName: 'Teachers Department CSE-AI'
-            }
-          : bookingForSelected
+          status: (isMaintenance ? 'maintenance' : hasBookings ? 'occupied' : 'free') as RoomStatus,
+          capacity: getRoomCapacity(roomNumber),
+        schedule: roomSchedule,
+        currentBooking: hasBookings
             ? {
-                batchName: bookingForSelected.batchName,
+                batchName: 'View daily schedule',
                 timeSlot: '',
-                lectureName: bookingForSelected.courseName || 'Lecture',
-                teacherName: bookingForSelected.teacherName,
-                courseName: bookingForSelected.courseName
+                lectureName: 'Room timetable'
               }
             : undefined
       }
-    })
+    }).filter((room) => !['CSE-103', 'CSE-104', 'CSE-203'].includes(room.roomNumber))
 
     return {
       number: floorNumber,
@@ -76,13 +67,11 @@ function transformScheduleData(schedule: DailySchedule, currentSlot: string): Fl
 }
 
 export default function StudentDashboard() {
-  const currentTimeSlot = getCurrentTimeSlot()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const formattedDate = format(selectedDate, 'yyyy-MM-dd')
-  const [selectedRoomForModal, setSelectedRoomForModal] = useState<string | null>(null)
   const [facultySearch, setFacultySearch] = useState('')
   const [facultyDepartment, setFacultyDepartment] = useState('')
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot>(currentTimeSlot as TimeSlot)
+  const [selectedFloor, setSelectedFloor] = useState(1)
 
   // Fetch schedule data with React Query
   const { data: scheduleData, error } = useQuery({
@@ -120,45 +109,26 @@ export default function StudentDashboard() {
     )
   }
 
-  const floors = transformScheduleData(scheduleData, selectedTimeSlot)
+  const floors = transformScheduleData(scheduleData)
+  const selectedFloorData = floors.find((floor) => floor.number === selectedFloor) || floors[0]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-purple-950">
-      {/* Timeline */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur-md p-4 border-b border-white/10">
-        <div className="flex flex-wrap justify-between items-center gap-2 max-w-7xl mx-auto overflow-x-hidden">
-          {TIME_SLOTS.map((slot) => (
-            <motion.div
-              key={slot}
-              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                slot === selectedTimeSlot
-                  ? 'bg-white/20 text-white'
-                  : 'text-white/60 hover:text-white/80 cursor-pointer'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => setSelectedTimeSlot(slot)}
-            >
-              {slot}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-background">
       {/* Faculty Search (moved to top) */}
       <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-          <h2 className="text-xl font-semibold text-white mb-4">Faculty</h2>
+        <div className="bg-card rounded-md border p-4 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Faculty</h2>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <input
               value={facultySearch}
               onChange={(e) => setFacultySearch(e.target.value)}
               placeholder="Search by name or email"
-              className="flex-1 px-3 py-2 rounded bg-white text-black"
+              className="h-11 flex-1 rounded-md border border-slate-300 bg-white px-3 text-foreground shadow-sm outline-none placeholder:text-slate-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             />
             <select
               value={facultyDepartment}
               onChange={(e) => setFacultyDepartment(e.target.value)}
-              className="px-3 py-2 rounded bg-white text-black"
+              className="h-11 rounded-md border border-slate-300 bg-white px-3 text-foreground shadow-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             >
               <option value="">All Departments</option>
               <option value="CSE">CSE</option>
@@ -177,7 +147,7 @@ export default function StudentDashboard() {
             date={selectedDate}
             onSelect={(date) => setSelectedDate(date)}
           />
-          <p className="text-white/60">
+          <p className="text-muted-foreground">
             Viewing schedule for {format(selectedDate, 'MMMM d, yyyy')}
           </p>
         </div>
@@ -186,45 +156,37 @@ export default function StudentDashboard() {
       {/* View Toggle */}
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex justify-end mb-6">
-          <div className="bg-white/10 rounded-lg p-1 backdrop-blur-md">
+          <div className="bg-card rounded-md p-1 border">
             <button
-              className="px-4 py-2 rounded-md text-sm bg-white/20 text-white cursor-default"
+              className="px-4 py-2 rounded text-sm bg-accent text-accent-foreground cursor-default"
             >
               2D View
             </button>
           </div>
         </div>
 
-        {/* Floors */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Floor Plans */}
-          <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-2 text-sm font-medium">Room availability</span>
             {floors.map((floor) => (
-              <FloorView
+              <button
                 key={floor.number}
-                floor={floor}
-                currentSlot={selectedTimeSlot as TimeSlot}
-                view="2d"
-                onRoomClick={(room) => setSelectedRoomForModal(room)}
-              />
+                type="button"
+                onClick={() => setSelectedFloor(floor.number)}
+                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedFloor === floor.number ? 'border-primary bg-emerald-50 text-emerald-800' : 'bg-white text-muted-foreground hover:bg-slate-50'}`}
+              >
+                Floor {floor.number}
+              </button>
             ))}
           </div>
-
-          {/* Booking Details removed to keep student/admin in sync */}
+          {selectedFloorData && (
+            <FloorView
+              floor={selectedFloorData}
+              view="2d"
+            />
+          )}
         </div>
       </div>
-      {/* Room Bookings Modal */}
-      {selectedRoomForModal && (
-        <RoomBookingsModal
-          isOpen={Boolean(selectedRoomForModal)}
-          onClose={() => setSelectedRoomForModal(null)}
-          roomNumber={selectedRoomForModal}
-          roomSchedule={scheduleData?.[selectedRoomForModal] || null}
-          isStaffRoom={isStaffRoom(selectedRoomForModal)}
-        />
-      )}
-
-      
     </div>
   )
 }

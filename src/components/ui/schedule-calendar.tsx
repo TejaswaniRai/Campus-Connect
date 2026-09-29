@@ -19,7 +19,7 @@ export function ScheduleCalendar({ date, onSelect }: ScheduleCalendarProps) {
         <Button
           variant="outline"
           className={cn(
-            "w-[240px] justify-start text-left font-normal bg-white/10 border-white/20 text-white",
+            "w-[240px] justify-start text-left font-normal bg-white border-input text-foreground hover:bg-slate-50",
             !date && "text-muted-foreground"
           )}
         >
@@ -27,7 +27,7 @@ export function ScheduleCalendar({ date, onSelect }: ScheduleCalendarProps) {
           {date ? format(date, "PPP") : "Pick a date"}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 bg-gray-950/90 backdrop-blur-xl border-gray-800">
+      <PopoverContent className="w-auto p-0 bg-white border shadow-lg">
         <DayPicker
           mode="single"
           selected={date}
@@ -40,7 +40,7 @@ export function ScheduleCalendar({ date, onSelect }: ScheduleCalendarProps) {
           classNames={{
             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
             month: "space-y-4",
-            caption: "flex justify-center pt-1 relative items-center text-white",
+            caption: "flex justify-center pt-1 relative items-center text-foreground",
             caption_label: "text-sm font-medium",
             nav: "space-x-1 flex items-center",
             nav_button: cn(
@@ -51,18 +51,18 @@ export function ScheduleCalendar({ date, onSelect }: ScheduleCalendarProps) {
             table: "w-full border-collapse space-y-1",
             head_row: "flex",
             head_cell:
-              "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] text-white/70",
+              "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
             row: "flex w-full mt-2",
             cell: cn(
               "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent",
               "first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
             ),
             day: cn(
-              "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-white hover:bg-white/20 rounded-md"
+              "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-foreground hover:bg-emerald-50 rounded-md"
             ),
             day_range_end: "day-range-end",
             day_selected:
-              "bg-blue-500/20 text-white hover:bg-blue-500/30 hover:text-white focus:bg-blue-500/30 focus:text-white",
+              "bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white focus:bg-emerald-700 focus:text-white",
             day_today: "bg-accent text-accent-foreground",
             day_outside: "text-muted-foreground opacity-50",
             day_disabled: "text-muted-foreground opacity-50",
@@ -71,7 +71,7 @@ export function ScheduleCalendar({ date, onSelect }: ScheduleCalendarProps) {
             day_hidden: "invisible",
           }}
           footer={
-            <p className="text-sm text-center text-white/70 p-2 border-t border-white/10 mt-4">
+            <p className="text-sm text-center text-muted-foreground p-2 border-t mt-4">
               Weekends are disabled
             </p>
           }

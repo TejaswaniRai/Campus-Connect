@@ -41,7 +41,7 @@ export default function StudentStudyMaterialsPage() {
                 placeholder="Search study materials..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-blue-400 focus:ring-blue-400/50"
+                className="h-11 pl-10 bg-white border-slate-300 text-foreground placeholder:text-slate-500 focus:border-emerald-600 focus:ring-emerald-100"
               />
             </div>
             

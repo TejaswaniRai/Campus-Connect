@@ -50,3 +50,30 @@ export interface Announcement {
   createdAt: string;
   replies?: Reply[];
 }
+
+export type LostFoundType = 'lost' | 'found';
+export type ClaimStatus = 'pending' | 'approved' | 'rejected';
+
+export interface LostFoundClaim {
+  id: string;
+  claimantName: string;
+  claimantContact: string;
+  proof: string;
+  status: ClaimStatus;
+  createdAt: string;
+}
+
+export interface LostFoundItem {
+  id: string;
+  type: LostFoundType;
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  dateTime: string;
+  reportedBy: string;
+  contact: string;
+  foundByName?: string;
+  createdAt: string;
+  claims: LostFoundClaim[];
+}

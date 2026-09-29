@@ -1,80 +1,81 @@
-# 📅 Classroom Scheduler System  
+# Campus Connect
 
-A next-gen **Classroom Scheduler** with **Student** and **Admin/Faculty Portals**, designed to solve the chaos of classroom management.  
-Our solution ensures **real-time scheduling, live room availability, and instant announcements** – all without needing a complex database.  
+Campus Connect is a shared university operations workspace for students, faculty, and administrators. It connects classroom scheduling, announcements, study materials, faculty search, and lost-and-found reports in one Next.js application.
 
----
+## Features
 
-## 🌟 Features  
+### Student portal
 
-### 🎓 Student Portal  
-- ✅ Real-time classroom availability.  
-- 🔴 Unavailable rooms clearly marked (with **teacher, course, batch, and timings**).  
-- 📢 Announcements Board for latest notices & updates.  
-- 🖥️ Modern, responsive UI for smooth navigation.  
+- Browse room availability by floor and inspect a room's full-day timetable.
+- See current time, occupied, available, maintenance, and room-capacity details.
+- Search faculty by name, email, and department.
+- Read announcements and reply to posts.
+- Browse study materials.
+- Report lost or found items and submit ownership claims with proof.
 
-### 🏫 Admin/Faculty Portal  
-- 🗂️ Faculty Management (view list, track classes handled, contact info).  
-- 📊 Performance Tracking (feedback/rating from students, # of classes handled).  
-- 📝 Create/Edit/Delete Announcements → **instantly synced** to Student Portal.  
-- 🔍 Searchable & filterable dashboard for easy faculty/classroom management.  
+### Admin portal
 
----
+- View the same live schedule data used by the student portal.
+- Book rooms for valid weekday time slots.
+- Monitor free, occupied, and maintenance room counts.
+- Manage announcements, faculty records, rooms, floors, subjects, and study materials.
+- Review lost-and-found reports and submitted claim details.
 
-## 🚀 Innovation Highlights  
+### Faculty portal
 
-✨ **Zero Database Setup** → Uses JSON/in-memory APIs (easily upgradeable to MongoDB/Supabase later).  
-✨ **Real-Time Sync** → Announcements from Admin appear instantly in Student Portal (WebSockets/Polling).  
-✨ **Scalable Architecture** → Built to plug in AI-powered scheduling & analytics.  
-✨ **Hackathon Friendly** → Lightweight, portable, deployable within hours.  
+- Use the shared schedule and lost-and-found workflows.
+- Manage rooms, floors, subjects, teachers, announcements, and study materials.
 
----
+## Architecture
 
-## 🏗️ Tech Stack  
+- **Framework:** Next.js 15 App Router with React 19 and TypeScript.
+- **UI:** Tailwind CSS, Radix UI primitives, Lucide icons, and React Query.
+- **API:** Next.js route handlers under `src/app/api`.
+- **Storage:** In-memory schedule data plus local JSON stores for announcements and lost-and-found.
+- **Connection model:** All portals use relative `/api/...` requests, so student and admin views share the same server-side data paths without a separate frontend/backend origin.
 
-- **Frontend**: React.js + TailwindCSS + Context API  
-- **Backend**: Node.js + Express.js  
-- **Database**: None (JSON-based now, but ready for MongoDB/Supabase)  
-- **Deployment**: Vercel (Frontend) + Render/Heroku (Backend)  
+## Local setup
 
----
+Requirements: Node.js 20 or newer.
 
-## ⚡ Future Scope  
+```bash
+npm install
+npm run dev
+```
 
-🔮 **AI-Powered Auto-Scheduler** → Suggests optimal classrooms based on availability & course requirements.  
-📊 **Analytics Dashboard** → Track faculty performance, student feedback, and resource utilization.  
-🌐 **Multilingual Support** → Accessible to diverse student groups.  
-📱 **Mobile App Integration** → On-the-go scheduling & notifications.  
-🔔 **Smart Notifications** → Push/email alerts for room changes, new announcements, or urgent updates.  
+Open `http://localhost:3000/login` in a browser.
 
----
+Useful checks:
 
-## 🚀 Installation & Setup  
+```bash
+npm run lint
+npm run build
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/TejaswaniRai/MindMesh.git
-   cd MindMesh
-2. **Install dependencies**
-   ```bash
-    npm install
-4. **Run**
-   ```bash
-   npm run dev
+## Deployment
 
----
+Campus Connect deploys as one Next.js service:
 
-## 🌍 Deployment  
+```bash
+npm run build
+npm start
+```
 
-🎉 Live Demo: [mind-mesh.netlify.app](https://68c1fd007fd61f520036f31f--mind-mesh.netlify.app/login)  
+No hardcoded localhost API URLs are used. The JSON data files are included in Next.js output tracing, and `LOCAL_DATA_DIR` can point to a writable mounted directory:
 
----
+```env
+LOCAL_DATA_DIR=/path/to/writable/data
+```
 
-## 👨‍💻 Team Members  
+The no-database setup is appropriate for local development, demos, and a single long-running Node process. In serverless or multi-instance hosting, local files may be ephemeral or isolated per instance. Use a hosted database before relying on permanent cross-instance writes.
 
-| Avatar | Name | GitHub |  
-|--------|------|--------|  
-| <img src="https://github.com/TejaswaniRai.png?size=80" width="80" height="80"> | Tejaswani Rai | [@TejaswaniRai](https://github.com/TejaswaniRai) |  
-| <img src="https://github.com/Soumyadip04.png?size=80" width="80" height="80"> | Soumyadip | [@Soumyadip04](https://github.com/Soumyadip04) |  
-| <img src="https://github.com/mayukh-7.png?size=80" width="80" height="80"> | Mayukh | [@mayukh-7](https://github.com/mayukh-7) |  
-| <img src="https://github.com/ipsita-seal.png?size=80" width="80" height="80"> | Ipsita Seal | [@ipsita-seal](https://github.com/ipsita-seal) |  
+## Project structure
+
+```text
+src/app/(dashboard)/       Student, faculty, and admin pages
+src/app/api/               Shared server-side API routes
+src/components/            Reusable UI and feature components
+src/lib/                   Stores and scheduling utilities
+src/types/                 Shared TypeScript types
+data/                      Local JSON data files
+```

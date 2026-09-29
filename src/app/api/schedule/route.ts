@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getScheduleStore, saveSchedule, TIME_SLOTS, type TimeSlot, getScheduleForDate, getMergedScheduleForDate, hasRecurringConflict, isStaffRoom } from '@/lib/schedule-store';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/schedule
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

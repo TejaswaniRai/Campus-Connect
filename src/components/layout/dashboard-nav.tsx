@@ -32,6 +32,11 @@ export function DashboardNav({ userRole }: DashboardNavProps) {
       href: isAdmin ? '/admin/study-materials' : isFaculty ? '/faculty/study-materials' : '/student/study-materials',
       label: 'Study Materials',
       active: pathname.includes('study-materials')
+    },
+    {
+      href: isAdmin ? '/admin/lost-and-found' : isFaculty ? '/faculty/lost-and-found' : '/student/lost-and-found',
+      label: 'Lost & Found',
+      active: pathname.includes('lost-and-found')
     }
   ]
   
@@ -71,16 +76,16 @@ export function DashboardNav({ userRole }: DashboardNavProps) {
   }
   
   return (
-    <nav className="flex items-center space-x-4 lg:space-x-6 mb-8">
+    <nav className="mb-8 flex flex-wrap items-center gap-2 border-b pb-3">
       {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
           className={cn(
-            "text-sm font-medium transition-colors hover:text-primary",
+            "px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
             link.active
-              ? "text-white"
-              : "text-white/60 hover:text-white/80"
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           {link.label}

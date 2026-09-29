@@ -8,11 +8,12 @@ import { Canvas, useFrame } from '@react-three/fiber'
 // import { extend } from '@react-three/fiber'
 import { OrbitControls, Text } from '@react-three/drei'
 import { ClassroomCard } from './classroom-card'
-import { TimeSlot } from '@/lib/schedule-store'
+import { getCurrentTimeSlot, TIME_SLOTS } from '@/lib/schedule-store'
 
 interface Room {
   roomNumber: string
-  status: 'free' | 'occupied' | 'extra'
+  status: 'free' | 'occupied' | 'maintenance' | 'extra'
+  capacity?: number
   currentBooking?: {
     batchName: string
     teacherName?: string
@@ -20,6 +21,11 @@ interface Room {
     lectureName: string
     timeSlot: string
   }
+  schedule?: Record<string, {
+    batchName?: string
+    teacherName?: string
+    courseName?: string
+  } | null>
 }
 
 interface Floor {
@@ -150,28 +156,39 @@ const HtmlTooltip = ({ room }: { room: Room }) => {
 
 interface FloorViewProps {
   floor: Floor
-  currentSlot: TimeSlot
   onRoomClick?: (roomNumber: string) => void
   view?: '2d' | '3d'
 }
 
-export const FloorView = ({ floor, currentSlot, onRoomClick, view = '2d' }: FloorViewProps) => {
-  // const [selectedRoom, setSelectedRoom] = React.useState<string | null>(null)
+export const FloorView = ({ floor, onRoomClick, view = '2d' }: FloorViewProps) => {
+  const [selectedRoomNumber, setSelectedRoomNumber] = React.useState<string | null>(null)
+  const currentSlot = getCurrentTimeSlot()
 
   const handleRoomSelect = (roomNumber: string) => {
-    // setSelectedRoom(roomNumber)
+    setSelectedRoomNumber(roomNumber)
     onRoomClick?.(roomNumber)
   }
+
+  const selectedRoom = floor.rooms.find((room) => room.roomNumber === selectedRoomNumber)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl overflow-hidden bg-gradient-to-br from-blue-900/50 to-purple-900/50 backdrop-blur-md border border-white/10 p-6 relative"
+      className="overflow-hidden rounded-sm border border-slate-800 bg-slate-950 p-5 text-slate-100 relative shadow-xl"
     >
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Floor {floor.number}</h2>
-        <p className="text-white/60">Current Time: {currentSlot}</p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">Schedule board</p>
+          <h2 className="mt-1 text-2xl font-semibold text-slate-100">Floor {floor.number} room availability</h2>
+          <p className="mt-1 text-sm text-slate-400">Select a room to inspect the full day timetable.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+          <span className="border-l-2 border-amber-400 pl-2">Now: {currentSlot}</span>
+          <span><span className="mr-1 inline-block h-2 w-2 bg-emerald-400" />Available</span>
+          <span><span className="mr-1 inline-block h-2 w-2 bg-rose-400" />Occupied</span>
+          <span><span className="mr-1 inline-block h-2 w-2 bg-amber-400" />Maintenance</span>
+        </div>
       </div>
 
       {view === '3d' ? (
@@ -187,15 +204,53 @@ export const FloorView = ({ floor, currentSlot, onRoomClick, view = '2d' }: Floo
           </Canvas>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {floor.rooms.map((room) => (
-            <ClassroomCard
-              key={room.roomNumber}
-              {...room}
-              onClick={() => handleRoomSelect(room.roomNumber)}
-            />
-          ))}
-        </div>
+        selectedRoom ? (
+          <div className="space-y-5">
+            <button
+              type="button"
+              onClick={() => setSelectedRoomNumber(null)}
+              className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
+            >
+              Back to Floor {floor.number}
+            </button>
+            <div className="rounded-sm border border-slate-700 bg-slate-900 p-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-sm text-slate-400">Room timetable</p>
+                  <h3 className="text-2xl font-semibold text-slate-100">{selectedRoom.roomNumber}</h3>
+                  <p className="mt-1 text-xs text-slate-400">Capacity {selectedRoom.capacity ?? 30} people</p>
+                </div>
+                <p className="text-sm text-slate-300">
+                  {selectedRoom.status === 'maintenance' ? 'Maintenance window' : selectedRoom.status === 'occupied' ? 'Occupied during one or more slots' : 'Available all day'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {TIME_SLOTS.map((slot) => {
+                const booking = selectedRoom.schedule?.[slot]
+                return (
+                  <div key={slot} className={`relative rounded-sm border p-3 ${slot === currentSlot ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-slate-700'} ${booking ? 'bg-rose-950/50' : 'bg-slate-900'}`}>
+                    {slot === currentSlot && <span className="absolute right-2 top-2 text-[10px] font-semibold uppercase tracking-wider text-amber-300">Now</span>}
+                    <p className="text-xs font-semibold text-slate-400">{slot}</p>
+                    <p className={`mt-2 font-medium ${booking ? 'text-rose-200' : 'text-emerald-300'}`}>{booking ? booking.courseName || 'Occupied' : 'Available'}</p>
+                    {booking?.batchName && <p className="text-sm text-slate-400">{booking.batchName}</p>}
+                    {booking?.teacherName && <p className="text-sm text-slate-400">{booking.teacherName}</p>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {floor.rooms.map((room) => (
+              <ClassroomCard
+                key={room.roomNumber}
+                {...room}
+                onClick={() => handleRoomSelect(room.roomNumber)}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Removed fixed position selected room tooltip as per user request */}

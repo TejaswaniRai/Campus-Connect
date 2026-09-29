@@ -17,15 +17,11 @@ interface RoomBookingsModalProps {
   onClose: () => void
   roomNumber: string | null
   roomSchedule: Record<string, { batchName?: string; teacherName?: string; courseName?: string } | null> | null
-  isStaffRoom?: boolean
 }
 
-export function RoomBookingsModal({ isOpen, onClose, roomNumber, roomSchedule, isStaffRoom }: RoomBookingsModalProps) {
+export function RoomBookingsModal({ isOpen, onClose, roomNumber, roomSchedule }: RoomBookingsModalProps) {
   const bookings: BookingItem[] = React.useMemo(() => {
     if (!roomSchedule || !roomNumber) return []
-    if (isStaffRoom) {
-      return [{ lectureName: 'Teachers Department CSE-AI' }]
-    }
     const items: BookingItem[] = []
     Object.entries(roomSchedule).forEach(([slot, booking]) => {
       if (booking) {
@@ -42,7 +38,7 @@ export function RoomBookingsModal({ isOpen, onClose, roomNumber, roomSchedule, i
     // Sort by TIME_SLOTS order
     items.sort((a, b) => (TIME_SLOTS as readonly string[]).indexOf(a.timeSlot || '') - (TIME_SLOTS as readonly string[]).indexOf(b.timeSlot || ''))
     return items
-  }, [roomSchedule, roomNumber, isStaffRoom])
+  }, [roomSchedule, roomNumber])
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>

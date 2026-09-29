@@ -99,12 +99,12 @@ export default function FacultyDashboard() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email"
-            className="flex-1 px-3 py-2 rounded bg-white text-black"
+            className="h-11 flex-1 rounded-md border border-slate-300 bg-white px-3 text-foreground shadow-sm outline-none placeholder:text-slate-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           />
           <select
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="px-3 py-2 rounded bg-white text-black"
+            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-foreground shadow-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           >
             <option value="">All Departments</option>
             <option value="CSE">CSE</option>

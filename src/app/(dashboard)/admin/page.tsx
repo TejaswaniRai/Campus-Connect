@@ -3,12 +3,13 @@
 import React, { useState, useMemo } from 'react'
 import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { getCurrentTimeSlot, TIME_SLOTS, isStaffRoom } from '@/lib/schedule-store'
+import { CalendarPlus } from 'lucide-react'
+import { TIME_SLOTS } from '@/lib/schedule-store'
+import { getRoomCapacity, isMaintenanceSchedule } from '@/lib/room-config'
 import { BookingModal } from '@/components/ui/booking-modal'
 import { useToast } from '@/components/ui/use-toast'
 import { DashboardStats } from '@/components/ui/dashboard-stats'
 import { FloorView } from '@/components/ui/floor-view'
-import { RoomBookingsModal } from '@/components/ui/room-bookings-modal'
 import type { Room, Floor } from '@/types/floor'
 
 // Fetch schedule data
@@ -73,10 +74,8 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient()
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('')
-  const [selectedRoomForModal, setSelectedRoomForModal] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const currentTimeSlot = getCurrentTimeSlot() as typeof TIME_SLOTS[number]
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<typeof TIME_SLOTS[number]>(currentTimeSlot)
+  const [selectedFloor, setSelectedFloor] = useState(1)
 
   // Set selectedDate on client to avoid hydration mismatch
   React.useEffect(() => {
@@ -162,40 +161,32 @@ export default function AdminDashboard() {
         const roomNumber = `CSE-${floor + 1}${(room + 1).toString().padStart(2, '0')}`
         const roomSchedule = selectedSchedule[roomNumber] || {}
 
-        const isStaff = isStaffRoom(roomNumber)
-        // Admin/faculty behavior: availability strictly for the selected time slot
-        const bookingForSelected = (roomSchedule as Record<string, BookingDetails | null>)[selectedTimeSlot as string] || null
-        const isOccupiedAtSelected = isStaff || Boolean(bookingForSelected)
+        const hasBookings = Object.values(roomSchedule).some(Boolean)
+        const isMaintenance = isMaintenanceSchedule(roomSchedule)
 
         return {
           roomNumber,
-          status: isOccupiedAtSelected ? 'occupied' : 'free' as Room['status'],
-          currentBooking: isStaff
-            ? {
-                batchName: undefined as unknown as string,
-                teacherName: undefined,
-                courseName: undefined,
-                timeSlot: '',
-                lectureName: 'Teachers Department CSE-AI'
-              }
-            : bookingForSelected
+          status: isMaintenance ? 'maintenance' : hasBookings ? 'occupied' : 'free' as Room['status'],
+          capacity: getRoomCapacity(roomNumber),
+          schedule: roomSchedule,
+          currentBooking: hasBookings
               ? {
-                  batchName: bookingForSelected.batchName,
-                  teacherName: bookingForSelected.teacherName,
-                  courseName: bookingForSelected.courseName,
+                  batchName: 'View daily schedule',
+                  teacherName: undefined,
+                  courseName: undefined,
                   timeSlot: '',
-                  lectureName: 'Lecture'
+                  lectureName: 'Room timetable'
                 }
               : undefined
         }
-      })
+      }).filter((room) => !['CSE-103', 'CSE-104', 'CSE-203'].includes(room.roomNumber))
 
       return {
         number: floor + 1,
         rooms
       }
     })
-  }, [selectedSchedule, selectedTimeSlot])
+  }, [selectedSchedule])
 
   // Calculate dashboard stats
   const stats = useMemo(() => {
@@ -204,8 +195,9 @@ export default function AdminDashboard() {
     const rooms = floorData.flatMap(floor => floor.rooms)
     const freeRooms = rooms.filter(room => room.status === 'free').length
     const bookedRooms = rooms.filter(room => room.status === 'occupied').length
+    const maintenanceRooms = rooms.filter(room => room.status === 'maintenance').length
 
-    return { freeRooms, bookedRooms, upcomingBookings }
+    return { freeRooms, bookedRooms, maintenanceRooms, upcomingBookings }
   }, [floorData, upcomingBookings])
 
   // Handler to update selectedDate when clicking on upcoming booking
@@ -242,10 +234,7 @@ const handleBookingSubmit = (data: { roomNumber: string; timeSlot: string; batch
     bookMutation.mutate(bookingData)
   }
 
-  const handleRoomClick = (roomNumber: string) => {
-    setSelectedRoom(roomNumber)
-    setSelectedRoomForModal(roomNumber)
-  }
+  const handleRoomClick = (roomNumber: string) => setSelectedRoom(roomNumber)
 
   if (!selectedSchedule || !stats || !selectedDate) {
     return (
@@ -269,28 +258,11 @@ const handleBookingSubmit = (data: { roomNumber: string; timeSlot: string; batch
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-purple-950">
+    <div className="min-h-screen bg-background">
       <div className="p-6 max-w-7xl mx-auto space-y-8">
-        {/* Timeline */}
-        <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur-md p-4 border border-white/10 rounded-md">
-          <div className="flex flex-wrap justify-between items-center gap-2 max-w-7xl mx-auto overflow-x-hidden">
-            {TIME_SLOTS.map((slot) => (
-              <motion.div
-                key={slot}
-                whileHover={{ scale: 1.05 }}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-                  slot === selectedTimeSlot ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white/80 cursor-pointer'
-                }`}
-                onClick={() => setSelectedTimeSlot(slot)}
-              >
-                {slot}
-              </motion.div>
-            ))}
-          </div>
-        </div>
         {/* Date Picker */}
         <div className="flex justify-center">
-          <div className="bg-white/10 backdrop-blur-xl rounded-lg p-4 border border-white/20 max-w-xs">
+          <div className="bg-card rounded-md p-4 border shadow-sm max-w-xs">
             <input
               type="date"
               className="w-full p-2 rounded bg-white text-black"
@@ -304,47 +276,50 @@ const handleBookingSubmit = (data: { roomNumber: string; timeSlot: string; batch
               }}
               disabled={selectedDate === null}
             />
-            <p className="text-xs text-white mt-1">Select a date (weekdays only)</p>
+            <p className="text-xs text-muted-foreground mt-1">Select a date (weekdays only)</p>
           </div>
         </div>
 
         {/* Dashboard Stats */}
-        <DashboardStats freeRooms={stats?.freeRooms} bookedRooms={stats?.bookedRooms} />
+          <DashboardStats freeRooms={stats?.freeRooms} bookedRooms={stats?.bookedRooms} maintenanceRooms={stats?.maintenanceRooms} />
 
         {/* Book a Classroom Button */}
         <div className="flex justify-center mt-4">
           <button
             onClick={() => setIsBookingModalOpen(true)}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold"
+            className="inline-flex items-center gap-2 rounded-sm bg-amber-400 px-5 py-3 font-semibold text-slate-950 shadow-lg shadow-amber-400/20 transition-colors hover:bg-amber-300"
           >
-            Book a Classroom
+            <CalendarPlus className="h-4 w-4" />
+            Book a room
           </button>
         </div>
 
         {/* Upcoming Bookings removed as regular classes drive availability */}
 
         {/* Floor Plans */}
-        {floorData.map((floor) => (
-          <FloorView
-            key={floor.number}
-            floor={floor}
-            currentSlot={selectedTimeSlot}
-            onRoomClick={handleRoomClick}
-            view="2d"
-          />
-        ))}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-2 text-sm font-medium">Room availability</span>
+            {floorData.map((floor) => (
+              <button
+                key={floor.number}
+                type="button"
+                onClick={() => setSelectedFloor(floor.number)}
+                className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedFloor === floor.number ? 'border-primary bg-emerald-50 text-emerald-800' : 'bg-white text-muted-foreground hover:bg-slate-50'}`}
+              >
+                Floor {floor.number}
+              </button>
+            ))}
+          </div>
+          {floorData[selectedFloor - 1] && (
+            <FloorView
+              floor={floorData[selectedFloor - 1]}
+              onRoomClick={handleRoomClick}
+              view="2d"
+            />
+          )}
+        </div>
 
-
-        {/* Room Bookings Modal */}
-        {selectedRoomForModal && (
-          <RoomBookingsModal
-            isOpen={Boolean(selectedRoomForModal)}
-            onClose={() => setSelectedRoomForModal(null)}
-            roomNumber={selectedRoomForModal}
-            roomSchedule={selectedSchedule?.[selectedRoomForModal] || null}
-            isStaffRoom={isStaffRoom(selectedRoomForModal)}
-          />
-        )}
 
         {/* Booking Modal */}
         <BookingModal

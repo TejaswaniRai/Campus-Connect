@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { announcementsStore } from '@/lib/announcements-store'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const createAnnouncementSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),

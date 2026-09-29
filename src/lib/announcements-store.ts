@@ -3,7 +3,8 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
-const ANNOUNCEMENTS_FILE = path.join(process.cwd(), 'data', 'announcements.json')
+const DATA_DIRECTORY = process.env.LOCAL_DATA_DIR || path.join(process.cwd(), 'data')
+const ANNOUNCEMENTS_FILE = path.join(DATA_DIRECTORY, 'announcements.json')
 
 class FileBasedAnnouncementsStore {
   announcements: Announcement[] = []

@@ -274,21 +274,10 @@ export default function AdminAnnouncementsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-950 to-purple-950 p-6">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.5, 1, 0.5]
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'easeInOut'
-          }}
-          className="text-center text-white"
-        >
-          Loading...
-        </motion.div>
+      <div className="min-h-screen bg-background p-6">
+        <div className="mx-auto max-w-6xl rounded-md border border-sky-200 bg-sky-50 p-6 text-center text-sm text-slate-600">
+          Loading announcements...
+        </div>
       </div>
     )
   }
